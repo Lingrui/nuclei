@@ -1,3 +1,6 @@
+#!/usr/bin/env python 
+from __future__ import absolute_import, division, print_function 
+
 import matplotlib
 matplotlib.use('Agg')
 import numpy as np # linear algebra
@@ -17,8 +20,7 @@ stage_label = 'stage1'
 ###########################
 train_labels = pd.read_csv(os.path.join(dsb_data_dir,'{}_train_labels.csv'.format(stage_label)))
 train_labels['EncodedPixels'] = train_labels['EncodedPixels'].map(lambda ep: [int(x) for x in ep.split(' ')])
-train_labels.sample(3)
-
+print(train_labels.sample(3))
 
 ##########################
 #
@@ -36,8 +38,7 @@ img_df['ImageId'] = img_df['path'].map(img_id)
 img_df['ImageType'] = img_df['path'].map(img_type)
 img_df['TrainingSplit'] = img_df['path'].map(img_group)
 img_df['Stage'] = img_df['path'].map(img_stage)
-img_df.sample(2)
-
+print(img_df.sample(2))
 
 ##########################
 #
@@ -54,6 +55,7 @@ for n_group, n_rows in train_df.groupby(group_cols):
     c_row['images'] = n_rows.query('ImageType == "images"')['path'].values.tolist()
     train_rows += [c_row]
 train_img_df = pd.DataFrame(train_rows)    
+#print(train_img_df.head())
 IMG_CHANNELS = 3
 def read_and_stack(in_img_list):
     return np.sum(np.stack([imread(c_img) for c_img in in_img_list], 0), 0)/255.0
@@ -77,6 +79,8 @@ for (_, c_row), (c_im, c_lab) in zip(train_img_df.sample(n_img).iterrows(),
     c_lab.imshow(c_row['masks'])
     c_lab.axis('off')
     c_lab.set_title('Labeled')
+ 
+fig.savefig('Labeled.png')
 
 
 ##########################
