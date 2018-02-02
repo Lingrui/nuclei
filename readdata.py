@@ -20,7 +20,7 @@ stage_label = 'stage1'
 ###########################
 train_labels = pd.read_csv(os.path.join(dsb_data_dir,'{}_train_labels.csv'.format(stage_label)))
 train_labels['EncodedPixels'] = train_labels['EncodedPixels'].map(lambda ep: [int(x) for x in ep.split(' ')])
-print(train_labels.sample(3))
+#print(train_labels.sample(3))
 
 ##########################
 #
@@ -38,7 +38,7 @@ img_df['ImageId'] = img_df['path'].map(img_id)
 img_df['ImageType'] = img_df['path'].map(img_type)
 img_df['TrainingSplit'] = img_df['path'].map(img_group)
 img_df['Stage'] = img_df['path'].map(img_stage)
-print(img_df.sample(2))
+#print(img_df.sample(2))
 
 ##########################
 #
@@ -61,7 +61,9 @@ def read_and_stack(in_img_list):
     return np.sum(np.stack([imread(c_img) for c_img in in_img_list], 0), 0)/255.0
 train_img_df['images'] = train_img_df['images'].map(read_and_stack).map(lambda x: x[:,:,:IMG_CHANNELS])
 train_img_df['masks'] = train_img_df['masks'].map(read_and_stack).map(lambda x: x.astype(int))
-train_img_df.sample(1)
+train_img_df.tail(1).to_csv("test.csv")    
+print ("train image df")
+print(len(train_img_df.tail(1)['masks']))
 
 ##########################
 #
@@ -224,6 +226,8 @@ def rle_encoding(x):
     Returns run length as list
     '''
     dots = np.where(x.T.flatten()==1)[0] # .T sets Fortran order down-then-right
+    #print ("*"*50)
+    #print("dots:",dots)
     run_lengths = []
     prev = -2
     for b in dots:
@@ -245,6 +249,8 @@ def prob_to_rles(x, cut_off = 0.5):
 #
 ###########################
 _, train_rle_row = next(train_img_df.tail(5).iterrows()) 
+print('*'*50)
+print(train_img_df.tail(1).iterrows)
 train_row_rles = list(prob_to_rles(train_rle_row['masks']))
 
 ##########################
