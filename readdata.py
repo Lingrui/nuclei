@@ -70,8 +70,14 @@ train_img_df.sample(1)
 ###########################
 n_img = 6
 fig, m_axs = plt.subplots(2, n_img, figsize = (12, 4))
+print ('*'*50)
 for (_, c_row), (c_im, c_lab) in zip(train_img_df.sample(n_img).iterrows(), 
                                      m_axs.T):
+    '''
+    print("c_row: ",c_row)
+    print("c_im: ",c_im)
+    print("c_lab: ",c_lab)
+    '''
     c_im.imshow(c_row['images'])
     c_im.axis('off')
     c_im.set_title('Microscope')
@@ -101,7 +107,7 @@ sns.pairplot(train_img_df[['Gray', 'Red', 'Green', 'Blue', 'Red-Blue']])
 # Check Dimensions
 #
 ###########################
-train_img_df['images'].map(lambda x: x.shape).value_counts()
+print(train_img_df['images'].map(lambda x: x.shape).value_counts())
 
 ##########################
 #
@@ -204,6 +210,8 @@ for (_, d_row), (c_im, c_lab, c_clean) in zip(test_img_df.sample(n_img).iterrows
     c_clean.axis('off')
     c_clean.set_title('Clean')
 
+fig.savefig('Clean.png')
+
 ##########################
 #
 # Check RLE
@@ -231,7 +239,51 @@ def prob_to_rles(x, cut_off = 0.5):
     for i in range(1, lab_img.max()+1):
         yield rle_encoding(lab_img==i)
 
+##########################
+#
+# Calculate the RLEs for a Train Image
+#
+###########################
+_, train_rle_row = next(train_img_df.tail(5).iterrows()) 
+train_row_rles = list(prob_to_rles(train_rle_row['masks']))
+
+##########################
+#
+# Take the RLEs from the CSV
+#
+###########################
+tl_rles = train_labels.query('ImageId=="{ImageId}"'.format(**train_rle_row))['EncodedPixels']
 
 
+##########################
+#
+# Check
+#
+###########################
+match, mismatch = 0, 0
+for img_rle, train_rle in zip(sorted(train_row_rles, key = lambda x: x[0]), 
+                             sorted(tl_rles, key = lambda x: x[0])):
+    for i_x, i_y in zip(img_rle, train_rle):
+        if i_x == i_y:
+            match += 1
+        else:
+            mismatch += 1
+print('Matches: %d, Mismatches: %d, Accuracy: %2.1f%%' % (match, mismatch, 100.0*match/(match+mismatch)))
 
+##########################
+#
+# Calculate RLE for all the masks
+#
+###########################
+test_img_df['rles'] = test_img_df['masks'].map(clean_img).map(lambda x: list(prob_to_rles(x)))
 
+out_pred_list = []
+for _, c_row in test_img_df.iterrows():
+    for c_rle in c_row['rles']:
+        out_pred_list+=[dict(ImageId=c_row['ImageId'], 
+                             EncodedPixels = ' '.join(np.array(c_rle).astype(str)))]
+out_pred_df = pd.DataFrame(out_pred_list)
+print(out_pred_df.shape[0], 'regions found for', test_img_df.shape[0], 'images')
+out_pred_df.sample(3)
+
+out_pred_df[['ImageId', 'EncodedPixels']].to_csv('predictions.csv', index = False)
